@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: colourapp-red
+spec:
+  selector:
+    matchLabels:
+      app: colourapp
+  replicas: 1
+  template: # template for the pods
+    metadata:
+      labels:
+        app: colourapp
+        version: red
+    spec:
+      containers:
+      - name: app
+        image: krishees/istio-demo-01:red
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: colourapp-blue
+spec:
+  selector:
+    matchLabels:
+      app: colourapp
+  replicas: 1
+  template: # template for the pods
+    metadata:
+      labels:
+        app: colourapp
+        version: blue
+    spec:
+      containers:
+      - name: app
+        image: krishees/istio-demo-01:blue
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: colourapp-service
+spec:
+  selector:
+    app: colourapp
+  ports:
+    - name: http
+      port: 80
+  type: ClusterIP

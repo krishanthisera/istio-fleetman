@@ -1,34 +1,58 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ingress-gateway-config
+spec:
+  selector:
+    app: istio-ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
 kind: VirtualService
 apiVersion: networking.istio.io/v1alpha3
 metadata:
-  name: a-set-of-routing-rules-we-can-call-this-anything  # "just" a name for this virtualservice
+  name: fleetman-webapp
   namespace: default
 spec:
+  gateways:
+    - ingress-gateway-config
   hosts:
-    - fleetman-staff-service.default.svc.cluster.local  # The Service DNS (ie the regular K8S Service) name that we're applying routing rules to.
+    - "*"
   http:
-    - route:
-        - destination:
-            host: fleetman-staff-service.default.svc.cluster.local # The Target DNS name
-            subset: safe-group  # The name defined in the DestinationRule
-          weight: 90
-        - destination:
-            host: fleetman-staff-service.default.svc.cluster.local # The Target DNS name
-            subset: risky-group  # The name defined in the DestinationRule
-          weight: 10
+    - match:
+      - uri:
+          prefix: "/experimental"
+      - uri:
+          prefix: "/canary"
+      route:
+      - destination:
+          host: fleetman-webapp.default.svc.cluster.local
+          subset: experimental
+    - match:
+      - uri:
+        prefix: "/"
+      route:
+      - destination:
+          host: fleetman-webapp.default.svc.cluster.local
+          subset: original
 ---
-kind: DestinationRule       # Defining which pods should be part of each subset
+kind: DestinationRule
 apiVersion: networking.istio.io/v1alpha3
 metadata:
-  name: grouping-rules-for-our-photograph-canary-release # This can be anything you like.
+  name: fleetman-webapp
   namespace: default
 spec:
-  host: fleetman-staff-service # Service
-  trafficPolicy: ~
+  host: fleetman-webapp.default.svc.cluster.local
   subsets:
-    - labels:   # SELECTOR.
-        version: safe # find pods with label "safe"
-      name: safe-group
     - labels:
-        version: risky
-      name: risky-group
+        version: original
+      name: original
+    - labels:
+        version: experimental
+      name: experimental
